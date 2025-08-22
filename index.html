@@ -6,15 +6,6 @@
 <title>Giám sát chỉ tiêu ao nuôi</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#2563eb">
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js')
-      .then(() => console.log("Service Worker registered"));
-  }
-</script>
-
 <style>
 :root{
   --bg:#f4f6f9; --panel:#fff; --muted:#64748b;
@@ -28,16 +19,22 @@ header{background:var(--panel); text-align:center; padding:10px; font-size:20px;
 .card{background:var(--panel); padding:16px; border-radius:12px; text-align:center;
       flex:1 1 220px; box-shadow:0 2px 5px rgba(0,0,0,.06)}
 .value{font-size:22px; font-weight:700}
+.normal{color:var(--ok)} .alert{color:var(--warn)}
 .muted{color:var(--muted); font-size:12px}
 .pill{display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700;
       border:1px solid transparent}
 .pill.ok{color:var(--ok); border-color:var(--ok); background:#dcfce7}
 .pill.warn{color:var(--warn); border-color:var(--warn); background:#fef3c7}
+.panel{background:var(--panel); margin:16px; padding:16px; border-radius:12px;
+       box-shadow:0 2px 5px rgba(0,0,0,.06)}
+.grid{display:grid; gap:10px}
+.grid.cols-2{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+input[type=number]{width:100px; padding:8px; border:1px solid #cbd5e1; border-radius:8px}
+button{background:var(--accent); color:#fff; padding:10px 14px; border:none; border-radius:8px;
+       font-weight:700; cursor:pointer}
 .alert-box{text-align:center; padding:10px; margin:10px 16px; border-radius:8px;
            background:var(--bad); color:#fff; display:none}
 canvas{background:var(--panel); border-radius:10px; padding:8px; margin-bottom:16px;
-       box-shadow:0 2px 5px rgba(0,0,0,.06)}
-.panel{background:var(--panel); margin:16px; padding:16px; border-radius:12px;
        box-shadow:0 2px 5px rgba(0,0,0,.06)}
 </style>
 </head>
@@ -45,23 +42,32 @@ canvas{background:var(--panel); border-radius:10px; padding:8px; margin-bottom:1
 
 <header>GIÁM SÁT CHỈ TIÊU AO NUÔI</header>
 
+<div class="panel">
+  <h3>Nhập giá trị đo</h3>
+  <div class="grid cols-2">
+    <div><b>Nhiệt độ (°C)</b><br><input id="inTemp" type="number" step="0.1" value="28"></div>
+    <div><b>pH</b><br><input id="inPh" type="number" step="0.1" value="7.5"></div>
+    <div><b>Oxy hòa tan (mg/L)</b><br><input id="inDo" type="number" step="0.1" value="5.5"></div>
+    <div><b>Độ mặn (‰)</b><br><input id="inSal" type="number" step="0.1" value="12"></div>
+  </div>
+</div>
+
 <div class="cards">
-  <div class="card">
+  <div class="card" id="card-temp">
     <h4>Nhiệt độ</h4>
     <div class="value" id="val-temp">-- °C</div>
     <div class="muted">Ngưỡng: <span id="rng-temp">--</span> <span id="pill-temp" class="pill">—</span></div>
   </div>
-  <div class="card">
-    <h4>pH</h4>
-    <div class="value" id="val-ph">--</div>
+  <div class="card" id="card-ph">
+    <h4>pH</h4><div class="value" id="val-ph">--</div>
     <div class="muted">Ngưỡng: <span id="rng-ph">--</span> <span id="pill-ph" class="pill">—</span></div>
   </div>
-  <div class="card">
+  <div class="card" id="card-do">
     <h4>Oxy hòa tan (DO)</h4>
     <div class="value" id="val-do">-- mg/L</div>
     <div class="muted">Ngưỡng: <span id="rng-do">--</span> <span id="pill-do" class="pill">—</span></div>
   </div>
-  <div class="card">
+  <div class="card" id="card-sal">
     <h4>Độ mặn</h4>
     <div class="value" id="val-sal">-- ‰</div>
     <div class="muted">Ngưỡng: <span id="rng-sal">--</span> <span id="pill-sal" class="pill">—</span></div>
@@ -69,6 +75,18 @@ canvas{background:var(--panel); border-radius:10px; padding:8px; margin-bottom:1
 </div>
 
 <div class="alert-box" id="alertBox"></div>
+
+<div class="panel">
+  <h3>Cài đặt ngưỡng cảnh báo</h3>
+  <div class="grid cols-2">
+    <div>Nhiệt độ thấp <input id="tLow" type="number" step="0.1" value="24"> cao <input id="tHigh" type="number" step="0.1" value="32"></div>
+    <div>pH thấp <input id="pLow" type="number" step="0.1" value="7.0"> cao <input id="pHigh" type="number" step="0.1" value="8.5"></div>
+    <div>DO thấp <input id="dLow" type="number" step="0.1" value="4.0"> cao <input id="dHigh" type="number" step="0.1" value="10.0"></div>
+    <div>Độ mặn thấp <input id="sLow" type="number" step="0.1" value="0"> cao <input id="sHigh" type="number" step="0.1" value="25"></div>
+  </div>
+  <button id="saveThBtn">Lưu ngưỡng</button>
+  <span id="saveMsg" class="muted"></span>
+</div>
 
 <div style="padding:0 16px">
   <canvas id="tempChart" height="160"></canvas>
@@ -78,9 +96,15 @@ canvas{background:var(--panel); border-radius:10px; padding:8px; margin-bottom:1
 </div>
 
 <script>
-const thresholds = { temp:{low:28,high:32}, ph:{low:7.0,high:8.5}, do:{low:4.0,high:10.0}, sal:{low:0,high:25} };
+const DEFAULT_T = { temp:{low:24,high:32}, ph:{low:7.0,high:8.5}, do:{low:4.0,high:10.0}, sal:{low:0,high:25} };
+let thresholds = JSON.parse(localStorage.getItem('thresholds')||'null') || DEFAULT_T;
 
+function saveThresholds(){ localStorage.setItem('thresholds', JSON.stringify(thresholds)); }
 function refreshThresholdUI(){
+  document.getElementById("tLow").value=thresholds.temp.low; document.getElementById("tHigh").value=thresholds.temp.high;
+  document.getElementById("pLow").value=thresholds.ph.low;   document.getElementById("pHigh").value=thresholds.ph.high;
+  document.getElementById("dLow").value=thresholds.do.low;   document.getElementById("dHigh").value=thresholds.do.high;
+  document.getElementById("sLow").value=thresholds.sal.low;  document.getElementById("sHigh").value=thresholds.sal.high;
   document.getElementById("rng-temp").textContent = `${thresholds.temp.low}–${thresholds.temp.high} °C`;
   document.getElementById("rng-ph").textContent   = `${thresholds.ph.low}–${thresholds.ph.high}`;
   document.getElementById("rng-do").textContent   = `${thresholds.do.low}–${thresholds.do.high} mg/L`;
@@ -88,13 +112,21 @@ function refreshThresholdUI(){
 }
 refreshThresholdUI();
 
-function makeChart(label){ 
-  return new Chart(document.getElementById(label), {
-    type:'line', 
-    data:{labels:[], datasets:[{label, data:[], borderWidth:2, tension:.3}]},
-    options:{responsive:true, animation:false}
-  });
-}
+document.getElementById("saveThBtn").onclick = ()=>{thresholds = {
+    temp:{low:+document.getElementById("tLow").value, high:+document.getElementById("tHigh").value},
+    ph:{low:+document.getElementById("pLow").value, high:+document.getElementById("pHigh").value},
+    do:{low:+document.getElementById("dLow").value, high:+document.getElementById("dHigh").value},
+    sal:{low:+document.getElementById("sLow").value, high:+document.getElementById("sHigh").value}
+  };
+  saveThresholds(); refreshThresholdUI();
+  document.getElementById("saveMsg").textContent='Đã lưu ✔'; setTimeout(()=>document.getElementById("saveMsg").textContent='',1500);
+};
+
+// Chart setup
+function makeChart(label){ return new Chart(document.getElementById(label), {
+  type:'line', data:{labels:[], datasets:[{label, data:[], borderWidth:2, tension:.3}]},
+  options:{responsive:true, animation:false}
+});}
 const tempChart=makeChart('tempChart'), phChart=makeChart('phChart'), doChart=makeChart('doChart'), salChart=makeChart('salChart');
 
 function pushPoint(chart, y){
@@ -109,6 +141,22 @@ function setPill(pill, state){
   pill.textContent=state==='ok'?'OK':(state==='low'?'Thấp':'Cao');
 }
 
+function updateAll(){
+  const data = {
+    temp:+document.getElementById("inTemp").value,
+    ph:+document.getElementById("inPh").value,
+    do:+document.getElementById("inDo").value,
+    sal:+document.getElementById("inSal").value
+  };
+  const stT = checkStatus('temp', data.temp, '°C', tempChart);
+  const stP = checkStatus('ph',   data.ph, '',   phChart);
+  const stD = checkStatus('do',   data.do, 'mg/L', doChart);
+  const stS = checkStatus('sal',  data.sal, '‰',  salChart);
+  const alertBox = document.getElementById("alertBox");
+  alertBox.style.display = [stT,stP,stD,stS].some(s=>s!=='ok')?'block':'none';
+  if(alertBox.style.display==='block') alertBox.textContent='⚠️ Có thông số vượt ngưỡng!';
+}
+
 function checkStatus(name, val, unit, chart){
   document.getElementById('val-'+name).textContent = unit?`${val} ${unit}`:val;
   const pill = document.getElementById('pill-'+name);
@@ -120,30 +168,35 @@ function checkStatus(name, val, unit, chart){
   return state;
 }
 
-function updateAll(data){
-  const stT = checkStatus('temp', data.temp, '°C', tempChart);
-  const stP = checkStatus('ph',   data.ph, '',   phChart);
-  const stD = checkStatus('do',   data.do, 'mg/L', doChart);
-  const stS = checkStatus('sal',  data.sal, '‰',  salChart);
-  const alertBox = document.getElementById("alertBox");
-  alertBox.style.display = [stT,stP,stD,stS].some(s=>s!=='ok')?'block':'none';
-  if(alertBox.style.display==='block') alertBox.textContent='⚠️ Có thông số vượt ngưỡng!';
-}
+// Gắn sự kiện nhập
+["inTemp","inPh","inDo","inSal"].forEach(id=>{
+  document.getElementById(id).addEventListener('input', updateAll);
+});
 
-/* ---------------- Lấy dữ liệu từ file data.json ---------------- */
-async function fetchData(){
-  try{
-    const res = await fetch("data.json?_=" + Date.now()); // tránh cache
-    const data = await res.json();
-    updateAll(data);
-  }catch(err){
-    console.error("Lỗi đọc data.json:", err);
+// Khởi tạo lần đầu
+updateAll();
+// Hàm lấy dữ liệu từ file JSON (giả lập API)
+async function fetchData() {
+  try {
+    let res = await fetch("data.json");   // đọc file JSON cùng thư mục
+    let data = await res.json();
+
+    document.getElementById("inTemp").value = data.temp;document.getElementById("inPh").value   = data.ph;
+    document.getElementById("inDo").value   = data.do;
+    document.getElementById("inSal").value  = data.sal;
+
+    updateAll(); // cập nhật giao diện
+  } catch (e) {
+    console.error("Lỗi khi lấy dữ liệu:", e);
   }
 }
 
-// chạy ngay và lặp lại mỗi 5 giây
-fetchData();
+// Cập nhật mỗi 5 giây
 setInterval(fetchData, 5000);
+
+// Lấy lần đầu khi mở trang
+fetchData();
+
 </script>
 
 </body>
